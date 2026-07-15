@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import PriceTicker from './components/PriceTicker'
+import CoinChart from './components/CoinChart'
 
 const REFRESH_INTERVAL_MS = 60_000
 
@@ -8,6 +9,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [selectedCoin, setSelectedCoin] = useState(null)
 
   async function fetchMarkets() {
     try {
@@ -30,6 +32,13 @@ export default function App() {
     return () => clearInterval(id)
   }, [])
 
+  // Keep selectedCoin data fresh when prices refresh
+  useEffect(() => {
+    if (!selectedCoin) return
+    const updated = coins.find((c) => c.id === selectedCoin.id)
+    if (updated) setSelectedCoin(updated)
+  }, [coins])
+
   return (
     <div className="min-h-screen bg-[#0f1117] text-gray-100 px-4 py-8 max-w-5xl mx-auto">
       <header className="mb-8">
@@ -46,7 +55,18 @@ export default function App() {
         )}
       </header>
 
-      <PriceTicker coins={coins} loading={loading} error={error} />
+      <CoinChart
+        coin={selectedCoin}
+        onClose={() => setSelectedCoin(null)}
+      />
+
+      <PriceTicker
+        coins={coins}
+        loading={loading}
+        error={error}
+        selectedCoin={selectedCoin}
+        onSelectCoin={setSelectedCoin}
+      />
     </div>
   )
 }
