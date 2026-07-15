@@ -1,4 +1,4 @@
-export default function PriceTicker({ coins, loading, error }) {
+export default function PriceTicker({ coins, loading, error, selectedCoin, onSelectCoin }) {
   if (loading) {
     return (
       <div className="text-gray-400 text-center py-12">Loading prices...</div>
@@ -38,7 +38,10 @@ export default function PriceTicker({ coins, loading, error }) {
             return (
               <tr
                 key={coin.id}
-                className="border-b border-gray-800 last:border-0 hover:bg-gray-800/40 transition-colors cursor-pointer"
+                onClick={() => onSelectCoin(coin.id === selectedCoin?.id ? null : coin)}
+                className={`border-b border-gray-800 last:border-0 hover:bg-gray-800/40 transition-colors cursor-pointer ${
+                  selectedCoin?.id === coin.id ? 'bg-gray-800/60' : ''
+                }`}
               >
                 <td className="px-4 py-3 text-gray-500">{coin.market_cap_rank}</td>
                 <td className="px-4 py-3">
