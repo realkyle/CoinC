@@ -16,6 +16,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings, Settings
 from coingecko_client import CoinGeckoClient
 from coin_service import CoinService
+from etherscan_client import EtherscanClient
+from wallet_service import WalletService
 
 
 app = FastAPI(
@@ -55,6 +57,19 @@ def get_coin_service(cfg: Settings = Depends(get_settings)) -> CoinService:
     """
     client = CoinGeckoClient(cfg)
     return CoinService(client, cfg)
+
+
+def get_wallet_service(cfg: Settings = Depends(get_settings)) -> WalletService:
+    """Construct and provide a fully wired WalletService per request.
+
+    Args:
+        cfg: Application settings, injected by FastAPI.
+
+    Returns:
+        A WalletService instance composed with an EtherscanClient.
+    """
+    client = EtherscanClient(cfg)
+    return WalletService(client)
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +126,35 @@ async def get_coin_chart(
     """
     try:
         return await service.get_coin_chart(coin_id, days, vs_currency)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/wallet/{address}", summary="ETH balance for any Ethereum wallet")
+async def get_wallet_balance(
+    address: str,
+    service: WalletService = Depends(get_wallet_service),
+) -> dict:
+    """Return the ETH balance for a public Ethereum wallet address.
+
+    Read-only lookup — no private keys or authentication required from the
+    caller. The Etherscan API key is configured server-side.
+
+    Args:
+        address: Ethereum address to query (``0x`` + 40 hex chars).
+        service: WalletService instance injected by FastAPI.
+
+    Returns:
+        JSON object with ``address`` (str) and ``eth`` (float) keys.
+
+    Raises:
+        HTTPException 400: If the address format is invalid.
+        HTTPException 502: If the upstream Etherscan request fails.
+    """
+    try:
+        return await service.get_balance(address)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

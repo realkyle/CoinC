@@ -15,6 +15,7 @@ import PriceTicker from "./components/PriceTicker";
 import CoinChart from "./components/CoinChart";
 import Watchlist from "./components/Watchlist";
 import Portfolio from "./components/Portfolio";
+import WalletView from "./components/WalletView";
 
 /**
  * Root component that wires together market data, chart selection,
@@ -69,6 +70,10 @@ export default function App() {
           onRemove={removeHolding}
         />
       )}
+
+      <WalletView
+        ethPriceUsd={coins.find((c) => c.id === "ethereum")?.current_price ?? null}
+      />
     </div>
   );
 }
