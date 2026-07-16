@@ -13,11 +13,13 @@ import { PriceFormatter } from "../utils/PriceFormatter";
  * Renders a table of live coin prices with colour-coded 24-hour change column.
  *
  * @param {object}          props
- * @param {Array<Object>}   props.coins        - Array of CoinGecko market objects.
- * @param {boolean}         props.loading      - True while the initial fetch is in flight.
- * @param {string|null}     props.error        - Error message string, or null when healthy.
- * @param {Object|null}     props.selectedCoin - The coin whose chart is currently open.
- * @param {function}        props.onSelectCoin - Called with a coin (or null) on row click.
+ * @param {Array<Object>}   props.coins          - Array of CoinGecko market objects.
+ * @param {boolean}         props.loading        - True while the initial fetch is in flight.
+ * @param {string|null}     props.error          - Error message string, or null when healthy.
+ * @param {Object|null}     props.selectedCoin   - The coin whose chart is currently open.
+ * @param {function}        props.onSelectCoin   - Called with a coin (or null) on row click.
+ * @param {function}        props.isWatched      - Returns true if a coinId is in the watchlist.
+ * @param {function}        props.onToggleWatch  - Called with a coinId to add/remove it.
  * @returns {JSX.Element}
  */
 export default function PriceTicker({
@@ -26,6 +28,8 @@ export default function PriceTicker({
   error,
   selectedCoin,
   onSelectCoin,
+  isWatched,
+  onToggleWatch,
 }) {
   if (loading) {
     return (
@@ -56,6 +60,7 @@ export default function PriceTicker({
             <th className="px-4 py-3 font-medium text-right hidden md:table-cell">
               Volume (24h)
             </th>
+            <th className="px-2 py-3" aria-label="Watchlist" />
           </tr>
         </thead>
         <tbody>
@@ -64,9 +69,11 @@ export default function PriceTicker({
               key={coin.id}
               coin={coin}
               isSelected={selectedCoin?.id === coin.id}
+              isWatched={isWatched(coin.id)}
               onSelect={() =>
                 onSelectCoin(selectedCoin?.id === coin.id ? null : coin)
               }
+              onToggleWatch={() => onToggleWatch(coin.id)}
             />
           ))}
         </tbody>
@@ -82,12 +89,14 @@ export default function PriceTicker({
  * and can be memoised (React.memo) independently if performance requires it.
  *
  * @param {object}   props
- * @param {Object}   props.coin       - CoinGecko market object for this row.
- * @param {boolean}  props.isSelected - True when this coin's chart panel is open.
- * @param {function} props.onSelect   - Called when the row is clicked.
+ * @param {Object}   props.coin          - CoinGecko market object for this row.
+ * @param {boolean}  props.isSelected    - True when this coin's chart panel is open.
+ * @param {boolean}  props.isWatched     - True when this coin is in the watchlist.
+ * @param {function} props.onSelect      - Called when the row body is clicked.
+ * @param {function} props.onToggleWatch - Called when the star button is clicked.
  * @returns {JSX.Element}
  */
-function CoinRow({ coin, isSelected, onSelect }) {
+function CoinRow({ coin, isSelected, isWatched, onSelect, onToggleWatch }) {
   const change = coin.price_change_percentage_24h;
   const isPositive = change >= 0;
 
@@ -129,6 +138,28 @@ function CoinRow({ coin, isSelected, onSelect }) {
 
       <td className="px-4 py-3 text-right text-gray-300 hidden md:table-cell">
         {PriceFormatter.formatLargeNumber(coin.total_volume)}
+      </td>
+
+      {/* Star button — stopPropagation prevents opening the chart on watch toggle */}
+      <td className="px-2 py-3 text-center">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleWatch();
+          }}
+          aria-label={
+            isWatched
+              ? `Remove ${coin.name} from watchlist`
+              : `Add ${coin.name} to watchlist`
+          }
+          className={`text-base transition-colors ${
+            isWatched
+              ? "text-yellow-400 hover:text-yellow-300"
+              : "text-gray-700 hover:text-gray-400"
+          }`}
+        >
+          {isWatched ? "★" : "☆"}
+        </button>
       </td>
     </tr>
   );
