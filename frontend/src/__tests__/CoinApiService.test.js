@@ -131,4 +131,68 @@ describe("CoinApiService", () => {
       );
     });
   });
+
+  // -------------------------------------------------------------------------
+  describe("fetchWalletBalance", () => {
+    beforeEach(() => {
+      global.fetch = vi.fn();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("throws immediately when address is an empty string", async () => {
+      await expect(CoinApiService.fetchWalletBalance("")).rejects.toThrow(
+        "address must be a non-empty string."
+      );
+    });
+
+    it("calls the correct endpoint with the encoded address", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ address: "0xabc", eth: 1.0 }),
+      });
+
+      await CoinApiService.fetchWalletBalance("0xabc");
+
+      expect(fetch).toHaveBeenCalledWith("/api/wallet/0xabc");
+    });
+
+    it("returns the parsed balance object on success", async () => {
+      const mockBalance = { address: "0xabc", eth: 2.5 };
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBalance,
+      });
+
+      const result = await CoinApiService.fetchWalletBalance("0xabc");
+
+      expect(result).toEqual(mockBalance);
+    });
+
+    it("throws using the backend detail message on a 400 response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ detail: "Invalid Ethereum address '0xinvalid'." }),
+      });
+
+      await expect(CoinApiService.fetchWalletBalance("0xinvalid")).rejects.toThrow(
+        "Invalid Ethereum address"
+      );
+    });
+
+    it("falls back to HTTP status when no detail field is present", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        json: async () => ({}),
+      });
+
+      await expect(CoinApiService.fetchWalletBalance("0xabc")).rejects.toThrow(
+        "HTTP 502"
+      );
+    });
+  });
 });

@@ -68,4 +68,26 @@ export class CoinApiService {
     }
     return response.json();
   }
+
+  /**
+   * Fetches the ETH balance for any public Ethereum wallet address.
+   *
+   * Maps to GET /api/wallet/{address} on the backend proxy.
+   * Read-only — no private key or authentication required from the caller.
+   *
+   * @param {string} address - Ethereum wallet address (0x + 40 hex chars).
+   * @returns {Promise<{address: string, eth: number}>} Balance in ETH.
+   * @throws {Error} If the address is invalid or the request fails.
+   */
+  static async fetchWalletBalance(address) {
+    if (!address) {
+      throw new Error("address must be a non-empty string.");
+    }
+    const response = await fetch(`${API_BASE}/wallet/${encodeURIComponent(address)}`);
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.detail || `Failed to fetch wallet balance: HTTP ${response.status}`);
+    }
+    return response.json();
+  }
 }

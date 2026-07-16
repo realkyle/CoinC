@@ -25,6 +25,8 @@ class Settings:
         coingecko_api_key: Demo API key for CoinGecko authentication.
         coingecko_base_url: Root URL for all CoinGecko v3 API requests.
         tracked_coin_ids: Ordered tuple of CoinGecko coin IDs to track.
+        etherscan_api_key: Free API key for Etherscan balance lookups.
+        etherscan_base_url: Root URL for all Etherscan API requests.
         request_timeout_seconds: HTTP timeout applied to every outbound request.
     """
 
@@ -44,6 +46,10 @@ class Settings:
             "chainlink",
         )
     )
+    etherscan_api_key: str = field(
+        default_factory=lambda: os.getenv("ETHERSCAN_API_KEY", "")
+    )
+    etherscan_base_url: str = "https://api.etherscan.io/api"
     request_timeout_seconds: int = 10
 
 
