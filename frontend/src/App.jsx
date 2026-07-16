@@ -2,46 +2,43 @@
  * @fileoverview Root application component.
  *
  * App is a thin orchestration layer: it composes hooks (useCoinMarkets,
- * useWatchlist) and presentational components (PriceTicker, CoinChart,
- * Watchlist) without containing any business logic itself.
- *
- * Shared state that spans multiple components lives here as the lowest
- * common ancestor — selectedCoin is shared by PriceTicker, CoinChart, and
- * Watchlist; watchedIds is shared by PriceTicker and Watchlist.
+ * useWatchlist, usePortfolio) and presentational components without containing
+ * any business logic itself. Shared state lives here as the lowest common
+ * ancestor of the components that need it.
  */
 
 import { useState, useEffect } from "react";
 import { useCoinMarkets } from "./hooks/useCoinMarkets";
 import { useWatchlist } from "./hooks/useWatchlist";
+import { usePortfolio } from "./hooks/usePortfolio";
 import PriceTicker from "./components/PriceTicker";
 import CoinChart from "./components/CoinChart";
 import Watchlist from "./components/Watchlist";
+import Portfolio from "./components/Portfolio";
 
 /**
  * Root component that wires together market data, chart selection,
- * watchlist state, and layout.
+ * watchlist state, portfolio state, and layout.
  *
  * @returns {JSX.Element}
  */
 export default function App() {
   const { coins, loading, error, lastUpdated } = useCoinMarkets();
   const { watchedIds, toggleWatchlist, isWatched } = useWatchlist();
+  const { holdings, addHolding, removeHolding } = usePortfolio();
   const [selectedCoin, setSelectedCoin] = useState(null);
 
-  // When the polling interval delivers fresh prices, keep the selected coin
-  // object current so the chart header always shows the latest price.
+  // Keep the selected coin's price current as the polling interval refreshes.
   useEffect(() => {
     if (!selectedCoin) return;
     const refreshed = coins.find((c) => c.id === selectedCoin.id);
     if (refreshed) setSelectedCoin(refreshed);
   }, [coins]);
 
-  // Derive the watched coin objects from the full coins array on each render.
-  // This keeps Watchlist in sync with live prices without extra state.
   const watchedCoins = coins.filter((c) => watchedIds.has(c.id));
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-gray-100 px-4 py-8 max-w-5xl mx-auto">
+    <div className="min-h-screen bg-[#0f1117] text-gray-100 px-4 py-8 pb-24 max-w-5xl mx-auto">
       <AppHeader lastUpdated={lastUpdated} />
 
       <Watchlist
@@ -62,6 +59,16 @@ export default function App() {
         isWatched={isWatched}
         onToggleWatch={toggleWatchlist}
       />
+
+      {/* Only render Portfolio once coin data is available for the dropdown */}
+      {!loading && coins.length > 0 && (
+        <Portfolio
+          coins={coins}
+          holdings={holdings}
+          onAdd={addHolding}
+          onRemove={removeHolding}
+        />
+      )}
     </div>
   );
 }
